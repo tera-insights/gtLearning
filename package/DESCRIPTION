@@ -1,0 +1,6 @@
+Package: gtLearning
+Title: R interface for the 'learning' library in GrokIt
+Authors: Jon Claus <jonterainsights@gmail.com>
+Description: Front-end interface for GrokIt.
+Version: 0.01
+Depends: gtBase
