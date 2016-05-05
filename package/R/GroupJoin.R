@@ -3,6 +3,6 @@ GroupJoin <- function(states, outputs) {
   check.atts(outputs)
   outputs <- convert.atts(outputs)
 
-  gist <- GIST(statistics)
+  gist <- GIST(learning::GroupJoin)
   Transition(gist, outputs, states)
 }
