@@ -57,36 +57,39 @@ static const constexpr size_t kRuleLength = std::tuple_size<Rules::value_type>::
 // The constraint paramter, as described in Definition 4.
 static const constexpr size_t kConstraint = 100;
 
+// The number of objects per fragment.
+static const constexpr size_t kFragmentSize = 2000000;
+
 // The rules information is changed from a vector of predicate tuples to a
 // simplified C array. This allows for easier reference.
-using RulesMatrix = std::array<Predicate, kRuleLength>*;
+using RulesMatrix = const std::array<Predicate, kRuleLength>*;
 
-// The iterator for the fragment result type. This is an abstract function, as
-// their are two different types of fragments each with their own sub-class.
-class <?=$className?>_Iterator {
+// This is an abstract class, simply used to hold the shared functionality for
+// the iterators below.
+class <?=$className?>_Simple_Iterator {
  protected:
-  Object object;            // The associated object.
-  const Facts& facts;       // The mapping for the facts.
-  const RulesMatrix rules;  // The container of rules.
-  size_t num_rules;         // The number of rules.
+  Object object;       // The associated object.
+  const Facts* facts;  // The mapping for the facts.
+  RulesMatrix rules;   // The container of rules.
+  size_t num_rules;    // The number of rules.
 
  public:
-  <?=$className?>_Iterator(const Object& object, int num_rules,
-                           const Facts& facts, const RulesMatrix rules)
+  <?=$className?>_Simple_Iterator(const Object& object, int num_rules,
+                                  const Facts* facts, const RulesMatrix rules)
       : object(object),
         num_rules(num_rules),
         facts(facts),
         rules(rules) {
   }
 
-  virtual ~<?=$className?>_Iterator() {}
+  virtual ~<?=$className?>_Simple_Iterator() {}
 
   virtual bool GetNextResult(<?=typed_ref_args($outputs_)?>) = 0;
 };
 
 // This iterator is used for the first loop structure in Algorithm 4. The input
 // facts are simply outputted along with a rule ID of 0.
-class <?=$className?>_Iterator_Copy : public <?=$className?>_Iterator {
+class <?=$className?>_Copy_Iterator : public <?=$className?>_Simple_Iterator {
  private:
   // The iterator across the inner mapping for predicates -> subject.
   Map::const_iterator predicate_iterator;
@@ -96,10 +99,10 @@ class <?=$className?>_Iterator_Copy : public <?=$className?>_Iterator {
 
  public:
   // This sets up the iterators for traversing the predicates and subjects.
-  <?=$className?>_Iterator_Copy(const Object& object, int num_rules,
-                                const Facts& facts, const RulesMatrix rules)
-      : <?=$className?>_Iterator(object, num_rules, facts, rules),
-        predicate_iterator(facts.Get(object).GetMap().begin()),
+  <?=$className?>_Copy_Iterator(const Object& object, int num_rules,
+                                const Facts* facts, const RulesMatrix rules)
+      : <?=$className?>_Simple_Iterator(object, num_rules, facts, rules),
+        predicate_iterator(facts->Get(object).GetMap().begin()),
         value(predicate_iterator->second.GetList().begin()),
         upper(predicate_iterator->second.GetList().end()) {
   }
@@ -109,7 +112,7 @@ class <?=$className?>_Iterator_Copy : public <?=$className?>_Iterator {
     if (value == upper) {
       predicate_iterator++;
       // Output is halted once all predicates have been traversed.
-      if (predicate_iterator == facts.Get(object).GetMap().end()) {
+      if (predicate_iterator == facts->Get(object).GetMap().end()) {
         return false;
       } else {
         value = predicate_iterator->second.GetList().begin();
@@ -125,7 +128,7 @@ class <?=$className?>_Iterator_Copy : public <?=$className?>_Iterator {
   }
 };
 
-// This fragment is used to perform the second loop structure in Algorith 4 and
+// This iterator is used to perform the second loop structure in Algorith 4 and
 // the output corresponds to line 7. The body predicates for each rule are
 // iterated over recursively, meaning an iterator must be stored for each body
 // predicate. The upper and lower bounds must also be stored for each, except
@@ -135,8 +138,11 @@ class <?=$className?>_Iterator_Copy : public <?=$className?>_Iterator {
 // TODO: This is currently hard-coded for the single case of length-3 rules. As
 //   such, it appears overly complicated. It is planned to allow arbitrary long
 //   rules in the future and so it should not be simplified.
-class <?=$className?>_Iterator_Loop : public <?=$className?>_Iterator {
+class <?=$className?>_Loop_Iterator : public <?=$className?>_Simple_Iterator {
  private:
+  // The index used to loop across the predicates.
+  int p_index;
+
   // The index for the rule currently being used for output.
   size_t rule_index;
 
@@ -147,33 +153,33 @@ class <?=$className?>_Iterator_Loop : public <?=$className?>_Iterator {
   // rule_index is initialized as -1 because AdvanceRule is immediately called.
   // This is done instead of calling InitializeRule directly to implicitly check
   // that at least one rule was provided in the input state to the GIST.
-  <?=$className?>_Iterator_Loop(const Object& object, int num_rules,
-                                const Facts& facts, const RulesMatrix rules)
-      : <?=$className?>_Iterator(object, num_rules, facts, rules),
+  <?=$className?>_Loop_Iterator(const Object& object, int num_rules,
+                                const Facts* facts, const RulesMatrix rules)
+      : <?=$className?>_Simple_Iterator(object, num_rules, facts, rules),
         rule_index(-1) {
     AdvanceRule();
   }
+
   // This initializes each iterator for the current rule.
   void InitializeRule() {
     // This is used to check the constraints in Definition 4 for this rule.
     size_t minimum_size = kConstraint + 1;
-    int i;
-    for (i = 0; i < 2; i++) {
+    for (p_index = 0; p_index < 2; p_index++) {
       // There are no subjects for this object-predicate pair. This means that
       // the rule containing this predicate will have no output, so there is no
       // need to set up the iterators.
-      if (!facts.Get(object).Contains(rules[rule_index][i]))
+      if (!facts->Get(object).Contains(rules[rule_index][p_index]))
         break;
       // List is a vector of the subjects for the current predicate.
-      auto list = facts.Get(object).Get(rules[rule_index][i]).GetList();
-      lower[i] = value[i] = list.begin();
-      upper[i] = list.end();
+      auto list = facts->Get(object).Get(rules[rule_index][p_index]).GetList();
+      lower[p_index] = value[p_index] = list.begin();
+      upper[p_index] = list.end();
       minimum_size = std::min(list.size(), minimum_size);
     }
     // If i has not been fully incremented, one of the predicates was missing.
     // This rule will not have any output, so we advance to the next one. The
     // rule is also skipped if it is non-functional.
-    if (i < 2 || minimum_size > kConstraint)
+    if (p_index < 2 || minimum_size > kConstraint)
       AdvanceRule();
   }
 
@@ -188,14 +194,14 @@ class <?=$className?>_Iterator_Loop : public <?=$className?>_Iterator {
   // This operator is used to increment the multiple inner iterators. In the
   // case that end of this rule is reached, the rule is advanced instead.
   void Increment() {
-    for (int i = 1; i >= 0; i--)
-      if (++value[i] == upper[i])
-        value[i] = lower[i];
+    for (p_index = 1; p_index >= 0; p_index--)
+      if (++value[p_index] == upper[p_index])
+        value[p_index] = lower[p_index];
       else
         break;  // One inner iterator has been incremented successfully.
-    // The subjects for the outermost predicate have been traverses, meaning
+    // The subjects for the outermost predicate have been traversed, meaning
     // output has finished for the current rule.
-    if (value[0] == upper[0])
+    if (p_index < 0 && value[0] == lower[0])
       AdvanceRule();
   }
 
@@ -210,6 +216,73 @@ class <?=$className?>_Iterator_Loop : public <?=$className?>_Iterator {
     return true;
   }
 };
+
+// This is the iterator actually used for the fragments. It will perform output
+// for several objects, using loop and copy iterators for each.
+class <?=$className?>_Iterator : public <?=$className?>_Simple_Iterator {
+ public:
+    using Iterator = Facts::MapType::const_iterator;
+    using Simple_Iterator = <?=$className?>_Simple_Iterator;
+    using Copy_Iterator = <?=$className?>_Copy_Iterator;
+    using Loop_Iterator = <?=$className?>_Loop_Iterator;
+
+ private:
+  // Iterators for the current and last elements in the object -> predicate map
+  // for which this fragment performs output.
+  Iterator iter, end;
+
+  // The copy and loop iterators used per output.
+  <?=$className?>_Copy_Iterator copy_iter;
+  <?=$className?>_Loop_Iterator loop_iter;
+
+  // A value recording the current state for this iterator. The values are:
+  // 0 - copy iterator, 1 - loop iterator, 2 - halt output.
+  int state;
+
+ public:
+  // The iterators are copied, which is necessary because the fragments before
+  // and after this will be using the begin and end iterators, respectively.
+  <?=$className?>_Iterator(Iterator& begin, Iterator& end, int num_rules,
+                           const RulesMatrix rules, const Facts* facts)
+      : Simple_Iterator(begin->first.GetKey0(), num_rules, facts, rules),
+        iter(begin),
+        end(end),
+        copy_iter(object, num_rules, facts, rules),
+        loop_iter(object, num_rules, facts, rules),
+        state(0) {}
+
+  bool GetNextResult(<?=typed_ref_args($outputs_)?>) {
+    if (state == 0) {
+        bool result = copy_iter.GetNextResult(<?=args($outputs_)?>);
+        if (result) {
+          return true;  // A result has been received.
+        } else {
+          state = 1;  // No result so far so the loop iterator is began.
+          return GetNextResult(<?=args($outputs_)?>);
+        }
+    } else {
+      bool result = loop_iter.GetNextResult(<?=args($outputs_)?>);
+      if (result) {
+        return true;  // A result has been received.
+      } else {
+        if (object % 10000 == 0)
+          std::cout << "Finished object: " << iter->first.GetKey0() << std::endl;
+        ++iter;  // Output for this object has finished entirely.
+        if (iter == end) {
+          return false;  // No more objects, so the output is finished.
+        } else {
+          // Iterators for the next object are created and output is began.
+          object = iter->first.GetKey0();
+          copy_iter = Copy_Iterator(object, num_rules, facts, rules);
+          loop_iter = Loop_Iterator(object, num_rules, facts, rules);
+          state = 0;
+          return GetNextResult(<?=args($outputs_)?>);
+        }
+      }
+    }
+  }
+};
+
 
 class <?=$className?> {
  public:
@@ -234,11 +307,9 @@ class <?=$className?> {
   // The number of rules.
   size_t num_rules;
 
-  // The iterator used to traverse the facts and list all objects.
-  Facts::MapType::const_iterator iterator;
-
-  // The mutex used by each fragment for locking the on the iterator.
-  std::mutex m_fragments;
+  // The object set is broken up into pieces for the fragment result. These
+  // iterators point to the boundaries for the fragments.
+  std::vector<Facts::MapType::const_iterator> iterators;
 
  public:
   <?=$className?>(<?=const_typed_ref_args($states_)?>)
@@ -259,21 +330,24 @@ class <?=$className?> {
   // There are 2 fragments per object. They perform the two separate loop
   // structures present in Algorithm 4.
   int GetNumFragments() {
-    iterator = facts.GetMap().cbegin();
-    return 2 * num_objects;
+    std::cout << "There are " << facts.GetMap().size() << " objects" << std::endl;
+    // This iterator is used to traverse the object -> predicate mapping.
+    Facts::MapType::const_iterator iter = facts.GetMap().cbegin();
+    // The iterator is copied whenever it lies on a chunk boundary. This loop
+    // immediately pushes back an iterator to the beginning of the map.
+    for (size_t index = 0; iter != facts.GetMap().cend(); ++iter, index++)
+      if (index % kFragmentSize == 0)
+        iterators.push_back(iter);
+    // The upper boundary for the last fragment is the end of the map. This
+    // fragment does not necessary have as many elements as the rest.
+    iterators.push_back(iter);
+    std::cout << "There are " << iterators.size() << " iterators" << std::endl;
+    return iterators.size() - 1;
   }
 
   Iterator* Finalize(int fragment) {
-    // The iterator is locked on while accessing the key information.
-    std::unique_lock<std::mutex> guard(m_fragments);
-    auto object = iterator->first.GetKey0();
-    // This fragment is used for outputting the knowledge base facts.
-    if (fragment % 2 == 0) {
-      return new <?=$className?>_Iterator_Copy(object, num_rules, facts, rules);
-    } else {
-      ++iterator;
-      return new <?=$className?>_Iterator_Loop(object, num_rules, facts, rules);
-    }
+    return new Iterator(iterators[fragment], iterators[fragment + 1],
+                        num_rules, rules, &facts);
   }
 
   bool GetNextResult(Iterator* it, <?=typed_ref_args($outputs_)?>) {
