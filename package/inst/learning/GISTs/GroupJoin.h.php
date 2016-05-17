@@ -16,14 +16,9 @@ function GroupJoin($t_args, $outputs, $states) {
     grokit_assert($numStates == 2,
                   "GroupJoin: Expected 2 states. Received $numStates.");
     $states_ = array_combine(['facts_state', 'rules_state'], $states);
-
     $factsInputs = $states_['facts_state']->input();
-    // If the facts state is a Segmenter on top of a GroupBy, the first input
-    // used for segmenter is removed.
-    if ($states_['facts_state']->name() == 'BASE::SEGMENTER')
-        $factsInputs = array_slice($factsInputs, 1);
 
-    // Initialization of local variables from template arguments.
+    // Processing of template arguments.
 
     // Setting output types.
     // The inputs to the facts state should be in the order of obj, pred, subj.
@@ -35,6 +30,7 @@ function GroupJoin($t_args, $outputs, $states) {
     $user_headers = [];
     $lib_headers  = ['base\gist.h'];
     $libraries    = [];
+    $properties   = [];
     $extra        = [];
     $result_type  = ['fragment'];
 ?>
@@ -52,10 +48,10 @@ using Object = <?=$outputs_['obj']?>;
 using Predicate = <?=$outputs_['pred']?>;
 
 // The constraint paramter, as described in Definition 4.
-static const constexpr size_t kConstraint = 100;
+const constexpr size_t kConstraint = 100;
 
 // The number of objects per fragment.
-static const constexpr size_t kFragmentSize = 2000000;
+const constexpr size_t kFragmentSize = 2000000;
 
 // This is an abstract class, simply used to hold the shared functionality for
 // the iterators below.
@@ -338,6 +334,7 @@ class <?=$className?> {
         'user_headers'    => $user_headers,
         'lib_headers'     => $lib_headers,
         'libraries'       => $libraries,
+        'properties'      => $properties,
         'extra'           => $extra,
         'iterable'        => true,
         'intermediate'    => false,
