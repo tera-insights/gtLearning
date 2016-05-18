@@ -104,7 +104,6 @@ class <?=$className?> {
       aggregate.Finalize();
       <?=array_template('{val} {key};', PHP_EOL, $keys)?>;
       long count, total_count = 0;
-      std::cout << "num groups: " << aggregate.size() << std::endl;
       while (aggregate.GetNextResult(<?=args($keys)?>, count)) {
         std::unique_ptr<std::atomic_long> ptr (new std::atomic_long(count));
         state.info.emplace(std::make_tuple(<?=args($keys)?>),
