@@ -21,7 +21,9 @@ data <- Join(counts1, predicate, rules, body1)
 data <- Cache(Join(data, c(object1, body2), counts2, c(object2, predicate)))
 ## This performs the rule pruning, checking the NF for each rule.
 t <- 100  ## The constraint parameter, as described in Definition 4.
-data <- Cache(data[count1 <= .(t) || count2 <= .(t)])
+data <- GroupBy(data, c(ID, head, body1, body2), Gather(object1),
+                fail = Sum(count1 > .(t) && count2 > .(t)))
+data <- Cache(data[fail == 0])
 
 ## This creates an object -> rule mapping describing the relevant rules per object.
 rules <- Segmenter(Group(data, object1, use.array = TRUE,
