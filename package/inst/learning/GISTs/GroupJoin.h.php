@@ -209,8 +209,8 @@ class <?=$className?>_Loop_Iterator : public <?=$className?>_Simple_Iterator {
       return false;
     pred = (*it)[2];
     rule = (*it)[3];
-    subj = std::get<0>(*value[1]);
-    obj = std::get<0>(*value[0]);
+    subj = std::get<0>(*value[0]);
+    obj = std::get<0>(*value[1]);
     Increment();
     return true;
   }
