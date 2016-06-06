@@ -1,5 +1,8 @@
-Group <- function(data, keys, values, use.array = FALSE, fragment.size = 2E6,
-                  debug = 0, delete.contents = FALSE) {
+## If no actual keys are given, a dummy key is 1 is used instead. The algorithm
+## could be specifically optimizied for the absence of keys, but the benefit is
+## most likely not worth the effort.
+Group <- function(data, keys = c(group = 1), values, use.array = FALSE,
+                  fragment.size = 2E6, debug = 0, delete.contents = FALSE) {
   keys <- convert.exprs(substitute(keys))
   vals <- convert.exprs(substitute(values))
 
