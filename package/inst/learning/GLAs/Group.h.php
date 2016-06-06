@@ -7,7 +7,7 @@
 // The primary trade-off is that two iterations are made over the data, as an
 // initial iteration is needed to set up the vector in the shared state.
 
-// Template Args:
+// Template Argumentss:
 // split: The number of inputs to be grouped on.
 // use.array: Whether an array is used instead of a tuple to store the inputs
 //   that aren't grouped on.
@@ -68,7 +68,7 @@ function Group($t_args, $inputs, $outputs, $states) {
 
     $sys_headers  = [];
     $user_headers = [];
-    $lib_headers  = ['base\gist.h'];
+    $lib_headers  = [];
     $libraries    = [];
     $properties   = [];
     $extra        = [];
@@ -86,7 +86,7 @@ class <?=$className?>;
 
 class <?=$className?> {
  public:
-  // The shared stated for the iterable GLA.
+  // The constant state for the iterable GLA.
   using ConstantState = <?=$constantState?>;
 
   // The class used for the GroupBy GLA.
@@ -145,7 +145,7 @@ class <?=$className?> {
   }
 
   bool ShouldIterate(ConstantState& state) {
-    if (state_.iteration++ == 0) {
+    if (state.iteration++ == 0) {
       aggregate.Finalize();
       <?=array_template('{val} {key};', PHP_EOL, $keys)?>;
       long count, total_count = 0;
@@ -257,20 +257,20 @@ using <?=$className?>_Iterator = <?=$className?>::Iterator;
 
 <?
     return [
-        'kind'             => 'GLA',
-        'name'             => $className,
-        'system_headers'   => $sys_headers,
-        'user_headers'     => $user_headers,
-        'lib_headers'      => $lib_headers,
-        'libraries'        => $libraries,
-        'properties'       => $properties,
-        'extra'            => $extra,
-        'iterable'         => true,
-        'intermediates'    => false,
-        'generated_state'  => $constantState,
-        'input'            => $inputs,
-        'output'           => $outputs,
-        'result_type'      => $result_type,
+        'kind'            => 'GLA',
+        'name'            => $className,
+        'system_headers'  => $sys_headers,
+        'user_headers'    => $user_headers,
+        'lib_headers'     => $lib_headers,
+        'libraries'       => $libraries,
+        'properties'      => $properties,
+        'extra'           => $extra,
+        'iterable'        => true,
+        'intermediates'   => false,
+        'generated_state' => $constantState,
+        'input'           => $inputs,
+        'output'          => $outputs,
+        'result_type'     => $result_type,
         'post_finalize'   => $post_finalize,
     ];
 }
