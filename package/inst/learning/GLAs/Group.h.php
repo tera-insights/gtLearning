@@ -7,7 +7,7 @@
 // The primary trade-off is that two iterations are made over the data, as an
 // initial iteration is needed to set up the vector in the shared state.
 
-// Template Argumentss:
+// Template Arguments:
 // split: The number of inputs to be grouped on.
 // use.array: Whether an array is used instead of a tuple to store the inputs
 //   that aren't grouped on.

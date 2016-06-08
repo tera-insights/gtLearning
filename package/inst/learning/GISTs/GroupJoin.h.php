@@ -14,15 +14,16 @@ function GroupJoin($t_args, $outputs, $states) {
     // Class name is randomly generated.
     $className = generate_name('GroupJoin');
 
+    // Processing of template arguments.
+    $rule = $t_args['rule'];
+    $fragSize = get_default($t_args, 'fragment.size', 2000000);
+
     // Processing of input state information.
     $numStates = count($states);
     grokit_assert($numStates == 2,
                   "GroupJoin: Expected 2 states. Received $numStates.");
     $states_ = array_combine(['facts_state', 'rules_state'], $states);
     $factsInputs = array_slice($states_['facts_state']->input(), 1);
-
-    // Processing of template arguments.
-    $fragSize = get_default($t_args, 'fragment.size', 2000000);
 
     // Setting output types.
     // The inputs to the facts state should be in the order of obj, pred, subj.
