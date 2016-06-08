@@ -21,16 +21,16 @@ data <- Join(counts1, predicate, rules, body1)
 data <- Cache(Join(data, c(object1, body2), counts2, c(object2, predicate)))
 ## This performs the rule pruning, checking the NF for each rule.
 t <- 100  ## The constraint parameter, as described in Definition 4.
-data <- GroupBy(data, c(ID, head, body1, body2), Gather(object1),
-                fail = Sum(count1 > .(t) && count2 > .(t)))
-data <- Cache(data[fail == 0])
+agg <- GroupBy(data, c(ID, head, body1, body2), fragment.size = 200,
+               Gather(object1), num_failed = Sum(count1 > .(t) && count2 > .(t)))
+data <- Cache(agg[num_failed == 0])
 
 ## This creates an object -> rule mapping describing the relevant rules per object.
 rules <- Segmenter(Group(data, object1, use.array = TRUE,
                          c(body1 = body1$GetID(), body2 = body2$GetID(), head = head$GetID(), ID)))
 
 ## Step 3 / Algorithm 4. The Group-Join GIST.
-groupjoin <- GroupJoin(list(facts, rules), c(Subject, Predicate, Object, Rule), frag = 1E5)
+groupjoin <- GroupJoin(list(facts, rules), c(Subject, Predicate, Object, Rule), frag = 1E4)
 
 ## This is used to stored the intermediate result.
 Store(groupjoin, groupjoin_intermediates, .overwrite = TRUE)
