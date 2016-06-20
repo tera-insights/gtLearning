@@ -1,6 +1,9 @@
 library(gtLearning)
 library(gtStats)
 
+## The time at which this query starts, used for benchmarking.
+begin <- Sys.time()
+
 ## The two inputs.
 facts <- Load(fb_facts)
 rules <- ReadCSV("/pcluster/freebase/rules/rules2.csv", sep = " ", line.number = Rule,
@@ -18,7 +21,7 @@ Store(data, groupjoin_intermediates, Object = objectID, Subject = subjectID, Pre
 
 ## Step 4. Remove duplicate rule IDs per fact.
 data <- Load(groupjoin_intermediates)
-group <- Segmenter(Group(data, Object, c(Predicate, Subject, Rule), frag = 1E5), inner = TRUE)
+group <- Segmenter(Group(data, Object, c(Predicate, Subject, Rule), frag = 1E5), fragment = TRUE)
 distinct <- StreamingGroupBy(group, c(group = 1), Distinct(c(Object, Subject, Predicate, Rule)))
 
 Store(distinct, distinct_intermediates, .overwrite = TRUE)
@@ -26,7 +29,7 @@ Store(distinct, distinct_intermediates, .overwrite = TRUE)
 ## Step 5 / Algorithm 5. We don't need to deduplicate rule IDs for this next GroupBy because
 ## only non-zero rule IDs are repeated. The result of the Sum is still always 0 or 1.
 data <- Load(distinct_intermediates)
-group <- Segmenter(Group(data, Object, c(Predicate, Subject, Rule), frag = 1E5, delete = TRUE), inner = TRUE)
+group <- Segmenter(Group(data, Object, c(Predicate, Subject, Rule), frag = 1E5, delete = TRUE), fragment = TRUE)
 correct <- StreamingGroupBy(group, Object, GroupBy(c(Predicate, Subject), correct = Sum(Rule == 0)))
 
 distinct <- Load(distinct_intermediates)
@@ -39,9 +42,10 @@ join <- join[Rule != 0]  ## Rule 0 just served as a placeholder.
 agg <- GroupBy(join, Rule, Sum(correct), total = Count())[correct != 0]
 
 ## Step 7.
-agg <- OrderBy(agg, confidence = dsc(correct / total), support = dsc(correct))
+agg <- OrderBy(agg, confidence = dsc(correct / total), support = dsc(correct))[support > 0]
 rules <- ReadCSV("/pcluster/freebase/rules/rules2.csv", sep = " ", line.number = Rule,
                  c(p = base::Factor(dict = "fb_predicate", bytes = 4),
                    q = base::Factor(dict = "fb_predicate", bytes = 4)))
 agg <- Join(agg, Rule, rules, Rule)
-result <- as.data.frame(agg, p, q, support, confidence)
+result <- as.data.frame(agg, Rule, p, q, support, confidence)
+time <- Sys.time() - begin
