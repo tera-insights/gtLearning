@@ -1,15 +1,17 @@
 ## If no actual keys are given, a dummy key is 1 is used instead. The algorithm
 ## could be specifically optimizied for the absence of keys, but the benefit is
 ## most likely not worth the effort.
-Group <- function(data, keys = c(group = 1), values, use.array = FALSE,
-                  fragment.size = 2E6, debug = 0, delete.contents = FALSE) {
+Group <- function(data, keys = c(group = 1), values, fragment.size = 2E6, debug = 0,
+                  key.array = FALSE, val.array = FALSE, delete.contents = FALSE) {
   keys <- convert.exprs(substitute(keys))
   vals <- convert.exprs(substitute(values))
 
   split <- length(keys)
-  if (!is.logical(use.array) && length(use.array) == 1)
-    stop("Group: use.array should be a single boolean.")
-  gla <- GLA(learning::Group, split, use.array, fragment.size, debug, delete.contents)
+  if (!is.logical(key.array) && length(key.array) == 1)
+    stop("Group: key.array should be a single boolean.")
+  if (!is.logical(val.array) && length(val.array) == 1)
+    stop("Group: val.array should be a single boolean.")
+  gla <- GLA(learning::Group, split, fragment.size, debug, key.array, val.array, delete.contents)
 
   key.names <- convert.names(keys)
   missing <- which(key.names == "")
