@@ -25,7 +25,8 @@ function Group($t_args, $inputs, $outputs, $states) {
     grokit_assert(is_integer($split), 'Group: split should be an integer.');
     grokit_assert(0 < $split && $split < \count($inputs),
                   'Group: split should be in the interval (0, #inputs).');
-    $useArray = get_default($t_args, 'use.array', false);
+    $keyArray = get_default($t_args, 'key.array', false);
+    $valArray = get_default($t_args, 'val.array', false);
     $debug = get_default($t_args, 'debug', 0);
     $fragSize = get_default($t_args, 'fragment.size', 2000000);
     $deleteContents = get_default($t_args, 'delete.contents', false);
@@ -44,11 +45,20 @@ function Group($t_args, $inputs, $outputs, $states) {
     $keys = array_slice($inputs_, 0, $split);
     $vals = array_slice($inputs_, $split);
 
-    // Checking that use.array is valid.
-    if ($useArray) {
-        $innerType = array_get_index($vals, 0);
+    // Checking that key.array is valid.
+    if ($keyArray) {
+        $innerKeyType = array_get_index($keys, 0);
+        foreach ($keys as $type)
+             grokit_assert($innerKeyType == $type,
+                           'Group: array must contain equivalent types.');
+        $numKeys = \count($keys);
+    }
+
+    // Checking that val.array is valid.
+    if ($valArray) {
+        $innerValType = array_get_index($vals, 0);
         foreach ($vals as $type)
-             grokit_assert($innerType == $type,
+             grokit_assert($innerValType == $type,
                            'Group: array must contain equivalent types.');
         $numVals = \count($vals);
     }
@@ -81,7 +91,7 @@ class <?=$className?>;
 <?  $constantState = lookupResource(
         'learning::Group_Constant_State',
         ['className' => $className, 'keys' => $keys, 'values' => $vals,
-         'use.array' => $useArray]
+         'key.array' => $keyArray, 'val.array' => $valArray]
     ); ?>
 
 class <?=$className?> {
@@ -128,12 +138,8 @@ class <?=$className?> {
     if (state_.iteration == 0) {
       aggregate.AddItem(<?=args($keys)?>);
     } else {
-      auto keys = std::make_tuple(<?=args($keys)?>);
-<?  if ($useArray) { ?>
+      ConstantState::Keys keys {<?=args($keys)?>};
       ConstantState::Values vals {<?=args($vals)?>};
-<?  } else { ?>
-      auto vals = std::make_tuple(<?=args($vals)?>);
-<?  } ?>
       auto& info = state_.info[keys];
       info.second[(*info.first)++] = vals;
     }
@@ -146,13 +152,13 @@ class <?=$className?> {
 
   bool ShouldIterate(ConstantState& state) {
     if (state.iteration++ == 0) {
-      aggregate.Finalize();
-      <?=array_template('{val} {key};', PHP_EOL, $keys)?>;
+      aggregate.Finalize();  // The aggregate is ready for output.
+      <?=array_template('{val} {key};', PHP_EOL, $keys)?>
       long count, total_count = 0;
       while (aggregate.GetNextResult(<?=args($keys)?>, count)) {
         std::unique_ptr<std::atomic_long> ptr (new std::atomic_long(count));
-        state.info.emplace(std::make_tuple(<?=args($keys)?>),
-                           std::make_pair(std::move(ptr), nullptr));
+        ConstantState::Keys keys {<?=args($keys)?>};
+        state.info.emplace(keys, std::make_pair(std::move(ptr), nullptr));
         total_count += count;
       }
 <?  if ($debug > 0) { ?>
@@ -295,9 +301,12 @@ function Group_Constant_State($t_args) {
     $keys = $t_args['keys'];
 
     // Information for array usage.
-    $useArray = $t_args['use.array'];
+    $keyArray = $t_args['key.array'];
+    $valArray = $t_args['val.array'];
+    $numKeys = \count($keys);
     $numVals = \count($vals);
-    $innerType = array_get_index($vals, 0);
+    $innerKeyType = array_get_index($keys, 0);
+    $innerValType = array_get_index($vals, 0);
 
     $sys_headers  = ['tuple', 'utility', 'map', 'atomic', 'memory'];
     $user_headers = [];
@@ -309,12 +318,14 @@ function Group_Constant_State($t_args) {
 
 class <?=$className?>ConstantState {
  public:
-  // The keys and values are packed into tuples.
+  // The container for the keys and values.
+<?  if ($keyArray) { ?>
+  using Keys = std::array<<?=$innerKeyType?>, <?=$numKeys?>>;
+<?  } else { ?>
   using Keys = std::tuple<<?=typed($keys)?>>;
-<?  if ($useArray) { ?>
-  static constexpr std::size_t kNumValues = <?=$numVals?>;
-  using ValueType = <?=$innerType?>;
-  using Values = std::array<ValueType, kNumValues>;
+<?  } ?>
+<?  if ($valArray) { ?>
+  using Values = std::array<<?=$innerValType?>, <?=numVals?>>;
 <?  } else { ?>
   using Values = std::tuple<<?=typed($vals)?>>;
 <?  } ?>
@@ -333,16 +344,12 @@ class <?=$className?>ConstantState {
  public:
   friend class <?=$className?>;
 
-  <?=$className?>ConstantState()
-      : iteration(0) {}
+  // Constructor is simple because most work is done in the ShouldIterate stage.
+  <?=$className?>ConstantState() : iteration(0) {}
 
-  const Map& GetInfo() const {
-    return info;
-  }
-
-  const Values* GetData() const {
-    return data.get();
-  }
+  // Basic getter methods.
+  const Map& GetInfo() const { return info; }
+  const Values* GetData() const { return data.get(); }
 };
 <?
     return [
