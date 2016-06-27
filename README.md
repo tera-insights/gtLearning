@@ -10,7 +10,7 @@ This project serves as an adaptation of [Ontological Pathfinder](https://bitbuck
 Installation
 -------------
 
-Because `gtLearning` is simply an extension for the GrokIt database engine, it is essential that that is installed first. Installation notes can be found [here](https://github.com/tera-insights/grokit/blob/master/README). Additionally, the base R package, `gtBase, must be installed. It can be found [here](https://github.com/tera-insights/gtBase). Afterwards, simply install the R package and GrokIt library as follows:
+Because `gtLearning` is simply an extension for the GrokIt database engine, it is essential that that is installed first. Installation notes can be found [here](https://github.com/tera-insights/grokit/blob/master/README). Additionally, the base R package, `gtBase`, must be installed. It can be found [here](https://github.com/tera-insights/gtBase). Afterwards, simply install the R package and GrokIt library as follows:
 
 1. Navigate to the working directory: `cd /your/repository/here/`
 2. Clone this repository: `git clone git@github.com:tera-insights/gtLearning.git`
