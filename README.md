@@ -3,7 +3,7 @@ gtLearning
 
 This project serves as an adaptation of [Ontological Pathfinder](https://bitbucket.org/datasci/ontological-pathfinding) for the [GrokIt](https://github.com/tera-insights/grokit) database engine. The primary purpose is demonstrate the efficiency and scale of GrokIt by comparing the final results for the Freebase dataset to those of Apache Spark and SQL. To that end, the following are key features of the performance:
 
- - Parallelization: The 388 million facts in the Freebase dataset are stored separately across a striped disk array, then read and processed separately, which results in a near perfect speed-up across 64 cores.
+ - Parallelization: The 388 million facts in the Freebase dataset are stored across a striped disk array, then read and processed separately, which results in a near perfect speed-up across 64 cores.
  - Pre-computation: Originally, Ontological Pathfinding considered every rule for each entry in the GroupJoin. However, on average less than 1% of rules were relevant to those entries. Through the use of equijoins and aggregates prior to the GroupJoin, each rule is mapped to only the facts for which that rule will predict new information.
  - Partitioning: Previously, Ontological Pathfinder used a scheme that partitioned the facts into smaller pieces and then stored them alongside the rules relevant to those facts. In the case of a rule being relevant to several different partitions, that rule was simply duplicated. GrokIt avoids this through its state management, which allows for the same states to be visible to every worker simultaneously.
 
