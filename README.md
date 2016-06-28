@@ -14,8 +14,8 @@ Because `gtLearning` is simply an extension for the GrokIt database engine, it i
 
 1. Navigate to the working directory: `cd /your/repository/here/`
 2. Clone this repository: `git clone git@github.com:tera-insights/gtLearning.git`
-3. Install the R package: `R CMD INSTALL /your/repository/here/package/`
-4. Install the GrokIt library: `grokit makelib /your/repository/here/package/inst/learning`
+3. Install the R package: `R CMD INSTALL /your/repository/here/gtLearning/package/`
+4. Install the GrokIt library: `grokit makelib /your/repository/here/gtLearning/package/inst/learning`
 
 Queries for each type of rule are included with the repository in the `queries` sub-directory. They can be ran directly in `R` using the `source` function, with the output being captured in the variable `result`, a data frame.
 
