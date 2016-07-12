@@ -137,9 +137,6 @@ class RuleIterator {
       const FactsGroup& facts_GLA = facts[kArgTypes[p_index]]->GetInnerGLA(join);
       // The mapping (either sp-o or op-s) for that GLA.
       auto& facts_map = facts_GLA.GetConstantState().GetInfo();
-      // The entry in that mapping for the join variable and the body predicate.
-      if (facts_map.count(std::make_tuple(join, rule[2 + p_index])) == 0)
-        std::cout << "Missing key: {" << join << ", " << (rule[2 + p_index]) << "} in facts_map " << (kArgTypes[p_index]) << std::endl;
       auto& pair = facts_map.at(std::make_tuple(join, rule[2 + p_index]));
       lower[p_index] = value[p_index] = pair.second;
       upper[p_index] = lower[p_index] + *pair.first;
