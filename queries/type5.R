@@ -30,9 +30,9 @@ agg <- GroupBy(data, c(ID, head, body1, body2), fragment.size = 200, Gather(arg1
                num_failed = Sum(count1 > .(t) && count2 > .(t)), count = Sum(count1 * count2))
 data <- Cache(agg[num_failed == 0])
 
-## This creates an object -> rule mapping describing the relevant rules per object.
+## This creates a rule -> argument mapping describing the relevant arguments per rule.
 rules <- Segmenter(Group(data, c(ID, head = head$GetID(), body1 = body1$GetID(), body2 = body2$GetID()),
-                         c(arg1, count), key.array = TRUE))
+                         arg1, key.array = TRUE))
 
 ## Step 3 / Algorithm 4. The Group-Join GIST.
 groupjoin <- GroupJoin(list(facts, rules), c(Subject, Predicate, Object, Rule), rule = 5, frag = 1E4)

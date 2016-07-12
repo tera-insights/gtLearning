@@ -29,10 +29,9 @@ t <- 100  ## The constraint parameter, as described in Definition 4.
 agg <- GroupBy(data, c(ID, head, body1, body2), fragment.size = 200, Gather(arg1),
                num_failed = Sum(count1 > .(t) && count2 > .(t)), count = Sum(count1 * count2))
 data <- Cache(agg[num_failed == 0])
-data <- Generate(data, count = base::UINT[](count), .overwrite = TRUE)
 
-## This creates an object -> rule mapping describing the relevant rules per object.
-rules <- Segmenter(Group(data, c(ID, head = head$GetID(), body1 = body1$GetID(), body2 = body2$GetID(), count),
+## This creates a rule -> argument mapping describing the relevant arguments per rule.
+rules <- Segmenter(Group(data, c(ID, head = head$GetID(), body1 = body1$GetID(), body2 = body2$GetID()),
                          arg1, key.array = TRUE))
 
 ## Step 3 / Algorithm 4. The Group-Join GIST.
@@ -55,7 +54,7 @@ Store(distinct, distinct_intermediates, .overwrite = TRUE)
 ## Step 5 / Algorithm 5. We don't need to deduplicate rule IDs for this next GroupBy because
 ## only non-zero rule IDs are repeated. The result of the Sum is still always 0 or 1.
 data <- Load(distinct_intermediates)
-group <- Segmenter(Group(data, Object, c(Predicate, Subject, Rule), frag = 1E5, delete = TRUE), inner   = TRUE)
+group <- Segmenter(Group(data, Object, c(Predicate, Subject, Rule), frag = 1E5, delete = TRUE), fragment = TRUE)
 correct <- StreamingGroupBy(group, Object, GroupBy(c(Predicate, Subject), correct = Sum(Rule == 0)))
 
 distinct <- Load(distinct_intermediates)
