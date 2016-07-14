@@ -1,7 +1,7 @@
 gtLearning
 =========
 
-This project serves as an adaptation of [Ontological Pathfinder](https://bitbucket.org/datasci/ontological-pathfinding) for the [GrokIt](https://github.com/tera-insights/grokit) database engine. The primary purpose is demonstrate the efficiency and scale of GrokIt by comparing the final results for the Freebase dataset to those of Apache Spark and SQL. To that end, the following are key features of the performance:
+This project serves as an adaptation of [Ontological Pathfinder](https://bitbucket.org/datasci/ontological-pathfinding) for the [GrokIt](https://github.com/tera-insights/grokit) database engine. The primary purpose is demonstrate the efficiency and scalability of GrokIt by comparing the final results for the Freebase dataset to those of Apache Spark and SQL. To that end, the following are key features of the performance:
 
  - Parallelization: The 388 million facts in the Freebase dataset are stored across a striped disk array, then read and processed separately, which results in a near perfect speed-up across 64 cores.
  - Pre-computation: Originally, Ontological Pathfinding considered every rule for each entry in the GroupJoin. However, on average less than 1% of rules were relevant to those entries. Through the use of equijoins and aggregates prior to the GroupJoin, each rule is mapped to only the facts for which that rule will predict new information.
@@ -10,7 +10,7 @@ This project serves as an adaptation of [Ontological Pathfinder](https://bitbuck
 Installation
 -------------
 
-Because `gtLearning` is simply an extension for the GrokIt database engine, it is essential that that is installed first. Installation notes can be found [here](https://github.com/tera-insights/grokit/blob/master/README). Additionally, the base R package, `gtBase`, must be installed. It can be found [here](https://github.com/tera-insights/gtBase). Afterwards, simply install this R package and GrokIt library as follows:
+Because `gtLearning` is simply an extension for the GrokIt database engine, it is essential that that is installed first. Installation notes can be found [here](https://github.com/tera-insights/grokit/blob/master/README). Additionally, the base R package, `gtBase`, must be installed. It can be found [here](https://github.com/tera-insights/gtBase). Afterwards, simply install the R package and GrokIt library as follows:
 
 1. Navigate to the working directory: `cd /your/repository/here/`
 2. Clone this repository: `git clone git@github.com:tera-insights/gtLearning.git`
