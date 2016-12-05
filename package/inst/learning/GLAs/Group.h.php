@@ -1,7 +1,7 @@
 <?
 // This GLA accumulates its inputs into a single large vector. It is similar to
 // base::Gather with several key differences that increase performance.
-// 1) It can group the inputs based on their values before storing them.
+// 1) It can group the inputs based on specified keys before storing them.
 // 2) Memory allocation is done only once for a single vector but insertions are
 //    done in parallel across many processes.
 // The primary trade-off is that two iterations are made over the data, as an
@@ -9,8 +9,10 @@
 
 // Template Arguments:
 // split: The number of inputs to be grouped on.
-// use.array: Whether an array is used instead of a tuple to store the inputs
-//   that aren't grouped on.
+// key.array: Whether or not an array should be used instead of a tuple to group
+//   the keys for input items.
+// val.array: Whether or not an array should be used instead of a tuple to group
+//   the stored values for input items.
 // debug: An integer code describing the level of debug messages to output.
 // fragment.size: The number of groups outputted per fragment.
 
